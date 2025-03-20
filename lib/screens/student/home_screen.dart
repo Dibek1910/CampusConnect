@@ -60,8 +60,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
   Future<void> _logout() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.logout();
-    Navigator.of(context).pushReplacementNamed(AppRouter.roleSelectionRoute);
+    await authProvider.logout(context);
   }
 
   void _navigateToFacultyDetail(String facultyId, String facultyName) {
@@ -153,7 +152,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: _logout,
+            onPressed: () => _logout(),
           ),
         ],
       ),

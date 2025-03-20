@@ -40,8 +40,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
 
   Future<void> _logout() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.logout();
-    Navigator.of(context).pushReplacementNamed(AppRouter.roleSelectionRoute);
+    await authProvider.logout(context);
   }
 
   Future<void> _updateAppointmentStatus(String appointmentId, String status,
@@ -137,6 +136,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Faculty Dashboard'),
         actions: [
           Stack(
@@ -176,7 +176,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
           ),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: _logout,
+            onPressed: () => _logout(),
           ),
         ],
         bottom: TabBar(
