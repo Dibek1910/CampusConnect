@@ -39,9 +39,16 @@ class FacultyModel {
 
   // Helper method to get department name
   String getDepartmentName() {
+    if (department == null) {
+      return '';
+    }
+
     if (department is Map) {
       return department['name'] ?? '';
+    } else if (department is String) {
+      return department;
     }
+
     return department.toString();
   }
 }

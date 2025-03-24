@@ -27,16 +27,8 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     super.initState();
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    // Get the department name correctly
-    String departmentName = '';
-    if (authProvider.facultyProfile!.department != null) {
-      // Check if department is a Map or a String
-      if (authProvider.facultyProfile!.department is Map) {
-        departmentName = authProvider.facultyProfile!.department['name'] ?? '';
-      } else {
-        departmentName = authProvider.facultyProfile!.department.toString();
-      }
-    }
+    // Get the department name using the helper method
+    String departmentName = authProvider.facultyProfile!.getDepartmentName();
 
     _profile = ProfileModel(
       id: authProvider.facultyProfile!.id,

@@ -166,16 +166,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     final facultyProvider = Provider.of<FacultyProvider>(context);
     final facultyProfile = authProvider.facultyProfile;
 
-    // Get department name correctly
-    String departmentName = '';
-    if (facultyProfile != null && facultyProfile.department != null) {
-      if (facultyProfile.department is Map) {
-        departmentName = facultyProfile.department['name'] ?? '';
-      } else {
-        departmentName = facultyProfile.department.toString();
-      }
-    }
-
     // Count pending appointments for badge
     final pendingAppointments = _filterAppointments('pending');
 
@@ -258,7 +248,7 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Department: $departmentName',
+                            'Department: ${facultyProfile.getDepartmentName()}',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[600],
