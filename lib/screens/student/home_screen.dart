@@ -16,6 +16,7 @@ class StudentHomeScreen extends StatefulWidget {
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
   final _searchController = TextEditingController();
   bool _isSearching = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -32,13 +33,25 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   }
 
   Future<void> _loadData() async {
-    // Load faculty list
-    await _loadFacultyList();
+    setState(() {
+      _isLoading = true;
+    });
 
-    // Load student appointments
-    final appointmentProvider =
-        Provider.of<AppointmentProvider>(context, listen: false);
-    await appointmentProvider.fetchStudentAppointments();
+    try {
+      // Load faculty list
+      await _loadFacultyList();
+
+      // Load student appointments
+      final appointmentProvider =
+          Provider.of<AppointmentProvider>(context, listen: false);
+      await appointmentProvider.fetchStudentAppointments();
+    } catch (e) {
+      print('Error loading data: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _loadFacultyList() async {
@@ -59,8 +72,26 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   }
 
   Future<void> _logout() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.logout(context);
+    final success = await authProvider.logout();
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (success) {
+      // Use pushNamedAndRemoveUntil to clear the navigation stack
+      Navigator.of(context).pushNamedAndRemoveUntil(
+          AppRouter.roleSelectionRoute, (route) => false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(authProvider.error ?? 'Logout failed')),
+      );
+    }
   }
 
   void _navigateToFacultyDetail(String facultyId, String facultyName) {
@@ -75,6 +106,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
   void _navigateToAppointmentHistory() {
     Navigator.of(context).pushNamed(AppRouter.appointmentHistoryRoute);
+  }
+
+  void _navigateToProfile() {
+    Navigator.of(context).pushNamed(AppRouter.studentProfileRoute);
   }
 
   @override
@@ -151,98 +186,106 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             ],
           ),
           IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: _navigateToProfile,
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => _logout(),
+            onPressed: _logout,
           ),
         ],
       ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (studentProfile != null)
-              Container(
-                padding: const EdgeInsets.all(16),
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome, ${studentProfile.name}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${studentProfile.course} - ${studentProfile.branch}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Year ${studentProfile.currentYear}, Semester ${studentProfile.currentSemester}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            Expanded(
-              child: facultyProvider.isLoading || appointmentProvider.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : facultyProvider.error != null
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Error: ${facultyProvider.error}',
-                                style: const TextStyle(color: Colors.red),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: _loadData,
-                                child: const Text('Retry'),
-                              ),
-                            ],
-                          ),
-                        )
-                      : facultyProvider.facultyList.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'No faculty members found',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            )
-                          : RefreshIndicator(
-                              onRefresh: _loadData,
-                              child: ListView.builder(
-                                padding: const EdgeInsets.all(16),
-                                itemCount: facultyProvider.facultyList.length,
-                                itemBuilder: (context, index) {
-                                  final faculty =
-                                      facultyProvider.facultyList[index];
-                                  return FacultyCard(
-                                    faculty: faculty,
-                                    onTap: () => _navigateToFacultyDetail(
-                                      faculty.id,
-                                      faculty.name,
-                                    ),
-                                  );
-                                },
-                              ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (studentProfile != null)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      color: Theme.of(context).primaryColor.withOpacity(0.1),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Welcome, ${studentProfile.name}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${studentProfile.course} - ${studentProfile.branch}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Year ${studentProfile.currentYear}, Semester ${studentProfile.currentSemester}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Expanded(
+                    child: facultyProvider.isLoading ||
+                            appointmentProvider.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : facultyProvider.error != null
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Error: ${facultyProvider.error}',
+                                      style: const TextStyle(color: Colors.red),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: _loadData,
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : facultyProvider.facultyList.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      'No faculty members found',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                  )
+                                : RefreshIndicator(
+                                    onRefresh: _loadData,
+                                    child: ListView.builder(
+                                      padding: const EdgeInsets.all(16),
+                                      itemCount:
+                                          facultyProvider.facultyList.length,
+                                      itemBuilder: (context, index) {
+                                        final faculty =
+                                            facultyProvider.facultyList[index];
+                                        return FacultyCard(
+                                          faculty: faculty,
+                                          onTap: () => _navigateToFacultyDetail(
+                                            faculty.id,
+                                            faculty.name,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }

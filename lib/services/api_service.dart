@@ -186,6 +186,7 @@ class ApiService {
       }
     } catch (e) {
       print('Error processing response: $e');
+
       return ApiResponse(
         statusCode: response.statusCode,
         data: null,
@@ -203,12 +204,31 @@ class ApiService {
 
   // Fetch faculty availability
   static Future<ApiResponse> fetchAvailability(String facultyId) {
-    return get('/faculty/$facultyId/availability');
+    return get('/students/faculty/$facultyId/availability');
   }
 
   // Book appointment
   static Future<ApiResponse> bookAppointment(
       Map<String, dynamic> appointmentData) {
-    return post('/appointments/book', appointmentData);
+    return post('/appointments', appointmentData);
+  }
+
+  // Add API functions for profile management
+  static Future<ApiResponse> fetchProfile(String endpoint) {
+    return get(endpoint);
+  }
+
+  static Future<ApiResponse> updateProfile(
+      String endpoint, Map<String, dynamic> data) {
+    return put(endpoint, data);
+  }
+
+  static Future<ApiResponse> generateOtp() {
+    return post('/auth/profile-update/send-otp', {});
+  }
+
+  static Future<ApiResponse> verifyOtp(String email, String otp) {
+    return post(
+        '/auth/profile-update/verify-otp', {"email": email, "otp": otp});
   }
 }

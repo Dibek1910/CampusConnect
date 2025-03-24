@@ -10,6 +10,8 @@ import 'package:campus_connect/screens/student/book_appointment_screen.dart';
 import 'package:campus_connect/screens/student/appointment_history_screen.dart';
 import 'package:campus_connect/screens/faculty/appointment_requests_screen.dart';
 import 'package:campus_connect/screens/faculty/availability_screen.dart';
+import 'package:campus_connect/screens/student/profile_screen.dart'; // Import StudentProfileScreen
+import 'package:campus_connect/screens/faculty/profile_screen.dart'; // Import FacultyProfileScreen
 
 class AppRouter {
   static const String splashRoute = '/';
@@ -23,6 +25,10 @@ class AppRouter {
   static const String appointmentHistoryRoute = '/appointment-history';
   static const String appointmentRequestsRoute = '/appointment-requests';
   static const String availabilityManagementRoute = '/availability-management';
+  static const String studentProfileRoute =
+      '/student-profile'; // Add student profile route
+  static const String facultyProfileRoute =
+      '/faculty-profile'; // Add faculty profile route
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -72,6 +78,10 @@ class AppRouter {
             builder: (_) => const AppointmentRequestsScreen());
       case availabilityManagementRoute:
         return MaterialPageRoute(builder: (_) => const AvailabilityScreen());
+      case studentProfileRoute: // Define student profile route
+        return MaterialPageRoute(builder: (_) => const StudentProfileScreen());
+      case facultyProfileRoute: // Define faculty profile route
+        return MaterialPageRoute(builder: (_) => const FacultyProfileScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

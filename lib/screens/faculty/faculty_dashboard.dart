@@ -16,6 +16,7 @@ class FacultyDashboardScreen extends StatefulWidget {
 class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -33,14 +34,44 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
   }
 
   Future<void> _loadAppointments() async {
-    final facultyProvider =
-        Provider.of<FacultyProvider>(context, listen: false);
-    await facultyProvider.fetchFacultyAppointments();
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final facultyProvider =
+          Provider.of<FacultyProvider>(context, listen: false);
+      await facultyProvider.fetchFacultyAppointments();
+    } catch (e) {
+      print('Error loading appointments: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _logout() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.logout(context);
+    final success = await authProvider.logout();
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (success) {
+      // Use pushNamedAndRemoveUntil to clear the navigation stack
+      Navigator.of(context).pushNamedAndRemoveUntil(
+          AppRouter.roleSelectionRoute, (route) => false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(authProvider.error ?? 'Logout failed')),
+      );
+    }
   }
 
   Future<void> _updateAppointmentStatus(String appointmentId, String status,
@@ -118,6 +149,10 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     Navigator.of(context).pushNamed(AppRouter.availabilityManagementRoute);
   }
 
+  void _navigateToProfile() {
+    Navigator.of(context).pushNamed(AppRouter.facultyProfileRoute);
+  }
+
   List<AppointmentModel> _filterAppointments(String status) {
     final facultyProvider = Provider.of<FacultyProvider>(context);
     return facultyProvider.appointments
@@ -131,12 +166,21 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     final facultyProvider = Provider.of<FacultyProvider>(context);
     final facultyProfile = authProvider.facultyProfile;
 
+    // Get department name correctly
+    String departmentName = '';
+    if (facultyProfile != null && facultyProfile.department != null) {
+      if (facultyProfile.department is Map) {
+        departmentName = facultyProfile.department['name'] ?? '';
+      } else {
+        departmentName = facultyProfile.department.toString();
+      }
+    }
+
     // Count pending appointments for badge
     final pendingAppointments = _filterAppointments('pending');
 
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
         title: const Text('Faculty Dashboard'),
         actions: [
           Stack(
@@ -175,8 +219,12 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
             ],
           ),
           IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: _navigateToProfile,
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => _logout(),
+            onPressed: _logout,
           ),
         ],
         bottom: TabBar(
@@ -188,78 +236,80 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
           ],
         ),
       ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (facultyProfile != null)
-              Container(
-                padding: const EdgeInsets.all(16),
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome, ${facultyProfile.name}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Department: ${facultyProfile.department}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: _navigateToManageAvailability,
-                      icon: const Icon(Icons.schedule),
-                      label: const Text('Manage Availability'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            Expanded(
-              child: facultyProvider.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : facultyProvider.error != null
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Error: ${facultyProvider.error}',
-                                style: const TextStyle(color: Colors.red),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: _loadAppointments,
-                                child: const Text('Retry'),
-                              ),
-                            ],
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (facultyProfile != null)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      color: Theme.of(context).primaryColor.withOpacity(0.1),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Welcome, ${facultyProfile.name}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        )
-                      : TabBarView(
-                          controller: _tabController,
-                          children: [
-                            _buildAppointmentList('pending'),
-                            _buildAppointmentList('accepted'),
-                            _buildAppointmentList('rejected'),
-                          ],
-                        ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Department: $departmentName',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton.icon(
+                            onPressed: _navigateToManageAvailability,
+                            icon: const Icon(Icons.schedule),
+                            label: const Text('Manage Availability'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).primaryColor,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Expanded(
+                    child: facultyProvider.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : facultyProvider.error != null
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Error: ${facultyProvider.error}',
+                                      style: const TextStyle(color: Colors.red),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: _loadAppointments,
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : TabBarView(
+                                controller: _tabController,
+                                children: [
+                                  _buildAppointmentList('pending'),
+                                  _buildAppointmentList('accepted'),
+                                  _buildAppointmentList('rejected'),
+                                ],
+                              ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
     );
   }
 

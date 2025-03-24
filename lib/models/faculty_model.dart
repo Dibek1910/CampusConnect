@@ -1,55 +1,47 @@
 class FacultyModel {
   final String id;
-  final String userId;
   final String name;
+  final dynamic department;
   final String phoneNumber;
-  final dynamic department; // Changed to dynamic to handle both String and Map
-  final List<String> availabilities;
-  final List<String> appointments;
+  final String? email;
+  final String? profilePicture;
 
   FacultyModel({
     required this.id,
-    required this.userId,
     required this.name,
-    required this.phoneNumber,
     required this.department,
-    required this.availabilities,
-    required this.appointments,
+    required this.phoneNumber,
+    this.email,
+    this.profilePicture,
   });
 
   factory FacultyModel.fromJson(Map<String, dynamic> json) {
-    // Handle department which can be either a Map or a String
-    dynamic departmentValue;
-    if (json['department'] is Map) {
-      departmentValue = json['department']['name'] ?? '';
-    } else {
-      departmentValue = json['department'] ?? '';
-    }
-
     return FacultyModel(
       id: json['_id'] ?? json['id'] ?? '',
-      userId: json['user'] is Map ? json['user']['_id'] : (json['user'] ?? ''),
       name: json['name'] ?? '',
+      department: json['department'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',
-      department: departmentValue,
-      availabilities: json['availabilities'] != null
-          ? List<String>.from(json['availabilities'])
-          : [],
-      appointments: json['appointments'] != null
-          ? List<String>.from(json['appointments'])
-          : [],
+      email: json['email'],
+      profilePicture: json['profilePicture'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'user': userId,
       'name': name,
+      'department': department,
       'phoneNumber': phoneNumber,
-      'department': department.toString(),
-      'availabilities': availabilities,
-      'appointments': appointments,
+      'email': email,
+      'profilePicture': profilePicture,
     };
+  }
+
+  // Helper method to get department name
+  String getDepartmentName() {
+    if (department is Map) {
+      return department['name'] ?? '';
+    }
+    return department.toString();
   }
 }

@@ -161,32 +161,20 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // Logout
-  Future<bool> logout() async {
+  Future<void> logout() async {
     _isLoading = true;
-    _error = null;
     notifyListeners();
 
     try {
-      // Call the logout API and clear local storage
-      final response = await _authService.logout();
-
-      // Clear local state regardless of API response
+      await _authService.logout();
       _user = null;
       _studentProfile = null;
       _facultyProfile = null;
-
-      _isLoading = false;
-      notifyListeners();
-
-      // Return true even if API fails, as we've cleared local state
-      return true;
     } catch (e) {
       _error = e.toString();
+    } finally {
       _isLoading = false;
       notifyListeners();
-
-      // Still return true as we want to navigate away
-      return true;
     }
   }
 

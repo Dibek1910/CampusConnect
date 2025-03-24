@@ -3,6 +3,7 @@ import 'package:campus_connect/models/faculty_model.dart';
 import 'package:campus_connect/models/appointment_model.dart';
 import 'package:campus_connect/models/availability_model.dart';
 import 'package:campus_connect/services/api_service.dart';
+import 'package:campus_connect/models/profile_model.dart'; // Import ProfileModel
 
 class FacultyProvider extends ChangeNotifier {
   List<FacultyModel> _facultyList = [];

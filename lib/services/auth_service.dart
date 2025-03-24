@@ -73,12 +73,32 @@ class AuthService {
   }
 
   // Logout
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    await prefs.remove('role');
-    await prefs.remove('userId');
-    await ApiService.get('/auth/logout');
+  Future<ApiResponse> logout() async {
+    try {
+      // First make the API call while the token is still valid
+      final response = await ApiService.post('/auth/logout', {});
+
+      // Then clear local storage regardless of API response
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+      await prefs.remove('role');
+      await prefs.remove('userId');
+
+      return response;
+    } catch (e) {
+      print('Error during logout: $e');
+      // Still clear local storage even if API call fails
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+      await prefs.remove('role');
+      await prefs.remove('userId');
+
+      return ApiResponse(
+        statusCode: 500,
+        data: null,
+        error: 'Error during logout: $e',
+      );
+    }
   }
 
   // Check if user is logged in
@@ -92,5 +112,16 @@ class AuthService {
   Future<String?> getUserRole() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('role');
+  }
+
+  // Add functions for OTP generation and verification
+  Future<ApiResponse> generateOtp(String email) async {
+    return await ApiService.post(
+        '/auth/profile-update/send-otp', {"email": email});
+  }
+
+  Future<ApiResponse> verifyOtp(String email, String otp) async {
+    return await ApiService.post(
+        '/auth/profile-update/verify-otp', {"email": email, "otp": otp});
   }
 }
