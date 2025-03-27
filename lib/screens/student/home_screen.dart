@@ -124,6 +124,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // Remove back arrow
         title: _isSearching
             ? TextField(
                 controller: _searchController,

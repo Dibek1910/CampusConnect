@@ -50,7 +50,7 @@ class FacultyCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      faculty.department.toString(),
+                      faculty.getDepartmentName(),
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
