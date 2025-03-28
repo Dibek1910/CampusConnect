@@ -140,6 +140,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             : const Text('Faculty List'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+          ),
+          IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search),
             onPressed: () {
               setState(() {

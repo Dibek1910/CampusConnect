@@ -29,8 +29,6 @@ class _FacultyDetailScreenState extends State<FacultyDetailScreen> {
     'Wednesday',
     'Thursday',
     'Friday',
-    'Saturday',
-    'Sunday',
   ];
 
   @override

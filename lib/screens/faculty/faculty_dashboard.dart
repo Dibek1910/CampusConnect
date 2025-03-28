@@ -141,10 +141,6 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
     );
   }
 
-  void _navigateToAppointmentRequests() {
-    Navigator.of(context).pushNamed(AppRouter.appointmentRequestsRoute);
-  }
-
   void _navigateToManageAvailability() {
     Navigator.of(context).pushNamed(AppRouter.availabilityManagementRoute);
   }
@@ -176,48 +172,14 @@ class _FacultyDashboardScreenState extends State<FacultyDashboardScreen>
       }
     }
 
-    // Count pending appointments for badge
-    final pendingAppointments = _filterAppointments('pending');
-
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false, // Remove back arrow
         title: const Text('Faculty Dashboard'),
         actions: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications),
-                onPressed: _navigateToAppointmentRequests,
-                tooltip: 'Appointment Requests',
-              ),
-              if (pendingAppointments.isNotEmpty)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 16,
-                      minHeight: 16,
-                    ),
-                    child: Text(
-                      '${pendingAppointments.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadAppointments,
           ),
           IconButton(
             icon: const Icon(Icons.person),

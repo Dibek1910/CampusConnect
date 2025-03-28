@@ -19,8 +19,6 @@ class _AvailabilityScreenState extends State<AvailabilityScreen> {
     'Wednesday',
     'Thursday',
     'Friday',
-    'Saturday',
-    'Sunday',
   ];
 
   String _selectedDay = 'Monday';
