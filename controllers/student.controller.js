@@ -183,6 +183,18 @@ export const getAllFaculty = async (req, res) => {
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: fromDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for availability search (defaults to today)
+ *       - in: query
+ *         name: toDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for availability search (defaults to 30 days from today)
  *     responses:
  *       200:
  *         description: Faculty availability slots
@@ -192,6 +204,7 @@ export const getAllFaculty = async (req, res) => {
 export const getFacultyAvailability = async (req, res) => {
   try {
     const { facultyId } = req.params;
+    const { fromDate, toDate } = req.query;
 
     const faculty = await Faculty.findById(facultyId);
     if (!faculty) {
@@ -201,11 +214,24 @@ export const getFacultyAvailability = async (req, res) => {
       });
     }
 
+    // Set default date range if not provided
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startDate = fromDate ? new Date(fromDate) : today;
+    const endDate = toDate
+      ? new Date(toDate)
+      : new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+
     const availabilities = await Availability.find({
       faculty: facultyId,
+      date: {
+        $gte: startDate,
+        $lte: endDate,
+      },
       isActive: true,
       isBooked: false,
-    }).sort({ day: 1, startTime: 1 });
+    }).sort({ date: 1, startTime: 1 });
 
     res.status(200).json({
       success: true,

@@ -129,28 +129,33 @@ export const updateFacultyProfile = async (req, res) => {
  *           schema:
  *             type: object
  *             required:
- *               - day
+ *               - date
  *               - startTime
  *               - endTime
  *             properties:
- *               day:
+ *               date:
  *                 type: string
- *                 enum: [Monday, Tuesday, Wednesday, Thursday, Friday]
+ *                 format: date
+ *                 description: Date for availability (must be current or future weekday)
  *               startTime:
  *                 type: string
- *                 pattern: '^([01]\d|2[0-3]):([0-5]\d)$'
+ *                 pattern: '^(09|1[0-7]):([0-5]\d)$'
+ *                 description: Start time between 09:00 and 17:59
  *               endTime:
  *                 type: string
- *                 pattern: '^([01]\d|2[0-3]):([0-5]\d)$'
+ *                 pattern: '^(09|1[0-8]):([0-5]\d)$'
+ *                 description: End time between 09:00 and 18:00
  *     responses:
  *       201:
  *         description: Availability slot added
+ *       400:
+ *         description: Invalid date or time, or overlapping slot
  *       404:
  *         description: Faculty not found
  */
 export const addAvailabilitySlot = async (req, res) => {
   try {
-    const { day, startTime, endTime } = req.body;
+    const { date, startTime, endTime } = req.body;
 
     const faculty = await Faculty.findOne({ user: req.user.id });
     if (!faculty) {
@@ -160,9 +165,56 @@ export const addAvailabilitySlot = async (req, res) => {
       });
     }
 
+    // Validate date is not in the past and is a weekday
+    const availabilityDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    availabilityDate.setHours(0, 0, 0, 0);
+
+    if (availabilityDate < today) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot set availability for past dates",
+      });
+    }
+
+    const dayOfWeek = availabilityDate.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Availability can only be set for weekdays (Monday to Friday)",
+      });
+    }
+
+    // Check for overlapping slots on the same date
+    const existingSlots = await Availability.find({
+      faculty: faculty._id,
+      date: availabilityDate,
+      isActive: true,
+    });
+
+    const newStart = new Date(`1970-01-01T${startTime}:00`);
+    const newEnd = new Date(`1970-01-01T${endTime}:00`);
+
+    for (const slot of existingSlots) {
+      const existingStart = new Date(`1970-01-01T${slot.startTime}:00`);
+      const existingEnd = new Date(`1970-01-01T${slot.endTime}:00`);
+
+      if (
+        (newStart >= existingStart && newStart < existingEnd) ||
+        (newEnd > existingStart && newEnd <= existingEnd) ||
+        (newStart <= existingStart && newEnd >= existingEnd)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Time slot overlaps with existing availability",
+        });
+      }
+    }
+
     const availability = await Availability.create({
       faculty: faculty._id,
-      day,
+      date: availabilityDate,
       startTime,
       endTime,
       isBooked: false,
@@ -179,6 +231,14 @@ export const addAvailabilitySlot = async (req, res) => {
     });
   } catch (error) {
     console.error("Add availability slot error:", error);
+
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "A slot with the same date and start time already exists",
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -208,22 +268,22 @@ export const addAvailabilitySlot = async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               day:
+ *               date:
  *                 type: string
- *                 enum: [Monday, Tuesday, Wednesday, Thursday, Friday]
+ *                 format: date
  *               startTime:
  *                 type: string
- *                 pattern: '^([01]\d|2[0-3]):([0-5]\d)$'
+ *                 pattern: '^(09|1[0-7]):([0-5]\d)$'
  *               endTime:
  *                 type: string
- *                 pattern: '^([01]\d|2[0-3]):([0-5]\d)$'
+ *                 pattern: '^(09|1[0-8]):([0-5]\d)$'
  *               isActive:
  *                 type: boolean
  *     responses:
  *       200:
  *         description: Availability slot updated
  *       400:
- *         description: Cannot update booked slot
+ *         description: Cannot update booked slot or invalid data
  *       403:
  *         description: Not authorized
  *       404:
@@ -232,7 +292,7 @@ export const addAvailabilitySlot = async (req, res) => {
 export const updateAvailabilitySlot = async (req, res) => {
   try {
     const { availabilityId } = req.params;
-    const { day, startTime, endTime, isActive } = req.body;
+    const { date, startTime, endTime, isActive } = req.body;
 
     const faculty = await Faculty.findOne({ user: req.user.id });
     if (!faculty) {
@@ -257,14 +317,39 @@ export const updateAvailabilitySlot = async (req, res) => {
       });
     }
 
-    if (availability.isBooked && (day || startTime || endTime)) {
+    if (availability.isBooked && (date || startTime || endTime)) {
       return res.status(400).json({
         success: false,
-        message: "Cannot update day or time for a booked slot",
+        message: "Cannot update date or time for a booked slot",
       });
     }
 
-    if (day) availability.day = day;
+    // If updating date, validate it's not in the past and is a weekday
+    if (date) {
+      const availabilityDate = new Date(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      availabilityDate.setHours(0, 0, 0, 0);
+
+      if (availabilityDate < today) {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot set availability for past dates",
+        });
+      }
+
+      const dayOfWeek = availabilityDate.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Availability can only be set for weekdays (Monday to Friday)",
+        });
+      }
+
+      availability.date = availabilityDate;
+    }
+
     if (startTime) availability.startTime = startTime;
     if (endTime) availability.endTime = endTime;
     if (isActive !== undefined) availability.isActive = isActive;
@@ -391,7 +476,7 @@ export const getAllAvailabilitySlots = async (req, res) => {
 
     const availabilities = await Availability.find({
       faculty: faculty._id,
-    }).sort({ day: 1, startTime: 1 });
+    }).sort({ date: 1, startTime: 1 });
 
     res.status(200).json({
       success: true,
