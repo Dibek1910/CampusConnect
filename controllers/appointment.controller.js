@@ -101,7 +101,7 @@ export const bookAppointment = async (req, res) => {
     }
 
     let endTime;
-    let appointmentData = {
+    const appointmentData = {
       student: student._id,
       faculty: faculty._id,
       date: appointmentDate,
@@ -301,7 +301,7 @@ export const getStudentAppointments = async (req, res) => {
       });
     }
 
-    let query = { student: student._id };
+    const query = { student: student._id };
 
     if (status && status !== "all") {
       query.status = status;
@@ -367,7 +367,7 @@ export const getFacultyAppointments = async (req, res) => {
       });
     }
 
-    let query = { faculty: faculty._id };
+    const query = { faculty: faculty._id };
 
     if (status && status !== "all") {
       query.status = status;
@@ -582,6 +582,13 @@ export const cancelAppointment = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Cannot cancel a rejected appointment",
+      });
+    }
+
+    if (appointment.status === "completed") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot cancel a completed appointment",
       });
     }
 
